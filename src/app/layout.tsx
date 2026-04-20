@@ -7,6 +7,7 @@ import Parallax from '@/components/Parallax'
 export const metadata: Metadata = {
   title: 'BITFAUNA — 2-Bit On-Chain Pareidolia',
   description: '1111 on-chain, generative, 4-color pixel art compositions. 100% on Ethereum.',
+  icons: { icon: '/favicon.webp' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

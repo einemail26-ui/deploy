@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIXEL EDITOR // 40×40</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --border: #2a2a2a;
+    --accent: #e8ff00;
+    --text: #d0d0d0;
+    --dim: #555;
+    --pixel-size: 12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    gap: 16px;
+  }
+
+  header {
+    width: 100%;
+    max-width: 900px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+
+  header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+
+  header span {
+    color: var(--dim);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+
+  .workspace {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 160px;
+  }
+
+  .panel {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 10px;
+  }
+
+  .panel-title {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  /* Color swatches */
+  .colors {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .color-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: border-color 0.1s;
+    text-align: left;
+  }
+
+  .color-btn:hover { border-color: var(--accent); }
+
+  .color-btn.active {
+    border-color: var(--accent);
+    background: #1a1a00;
+    color: var(--accent);
+  }
+
+  .swatch {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #444;
+    flex-shrink: 0;
+  }
+
+  .swatch.white  { background: #ffffff; }
+  .swatch.gray   { background: #808080; }
+  .swatch.blue   { background: #4488ff; }
+  .swatch.black  { background: #000000; }
+
+  /* Reference image panel */
+  .ref-upload-label {
+    display: block;
+    border: 1px dashed var(--border);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--dim);
+    letter-spacing: 0.08em;
+    transition: border-color 0.1s, color 0.1s;
+    font-size: 10px;
+  }
+  .ref-upload-label:hover { border-color: var(--accent); color: var(--accent); }
+  #refInput { display: none; }
+
+  .ref-name {
+    font-size: 9px;
+    color: var(--dim);
+    word-break: break-all;
+    margin-top: 6px;
+  }
+
+  /* Opacity slider */
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  .slider-label {
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  /* Lock/Unlock buttons */
+  .btn-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 7px 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.1s;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.active-btn { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 700; }
+
+  /* Actions */
+  .btn-danger { border-color: #551111; color: #cc4444; }
+  .btn-danger:hover { border-color: #cc4444; background: #1a0000; }
+
+  /* ── CANVAS AREA ── */
+  .canvas-wrap {
+    position: relative;
+    /* 40 * 12px = 480px */
+    width: 480px;
+    height: 480px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    cursor: crosshair;
+  }
+
+  #pixelCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 480px;
+    height: 480px;
+    image-rendering: pixelated;
+  }
+
+  #gridCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 480px;
+    height: 480px;
+    pointer-events: none;
+    image-rendering: pixelated;
+    opacity: 0.35;
+  }
+
+  #refCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 480px;
+    height: 480px;
+    pointer-events: none;
+    image-rendering: pixelated;
+    opacity: 0.5;
+    display: none;
+  }
+
+  #hoverCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 480px;
+    height: 480px;
+    pointer-events: none;
+  }
+
+  /* Status bar */
+  .statusbar {
+    width: 100%;
+    max-width: 900px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 5px 10px;
+    display: flex;
+    gap: 20px;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+  }
+
+  .statusbar span { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PIXEL EDITOR</h1>
+  <span>40 × 40 // CANVAS</span>
+</header>
+
+<div class="workspace">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Colors -->
+    <div class="panel">
+      <div class="panel-title">Farbe</div>
+      <div class="colors">
+        <button class="color-btn active" data-color="#ffffff" data-name="WHITE" onclick="selectColor(this)">
+          <div class="swatch white"></div> WHITE
+        </button>
+        <button class="color-btn" data-color="#808080" data-name="GRAY" onclick="selectColor(this)">
+          <div class="swatch gray"></div> GRAY
+        </button>
+        <button class="color-btn" data-color="#4488ff" data-name="BLUE" onclick="selectColor(this)">
+          <div class="swatch blue"></div> BLUE
+        </button>
+        <button class="color-btn" data-color="#000000" data-name="BLACK" onclick="selectColor(this)">
+          <div class="swatch black"></div> BLACK
+        </button>
+      </div>
+    </div>
+
+    <!-- Reference image -->
+    <div class="panel">
+      <div class="panel-title">Referenzbild</div>
+
+      <label class="ref-upload-label" for="refInput">
+        ▲ BILD LADEN
+      </label>
+      <input type="file" id="refInput" accept="image/*" onchange="loadRef(this)">
+      <div class="ref-name" id="refName">—</div>
+
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>OPACITY</span>
+          <span id="opacityVal">50%</span>
+        </div>
+        <input type="range" id="opacitySlider" min="0" max="100" value="50"
+               oninput="setOpacity(this.value)" />
+      </div>
+
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn" id="btnLock" onclick="setLock(true)">LOCK</button>
+        <button class="btn active-btn" id="btnUnlock" onclick="setLock(false)">UNLOCK</button>
+      </div>
+    </div>
+
+    <!-- Grid toggle -->
+    <div class="panel">
+      <div class="panel-title">Ansicht</div>
+      <div class="btn-row">
+        <button class="btn active-btn" id="btnGrid" onclick="toggleGrid()">GRID</button>
+        <button class="btn" onclick="clearCanvas()">CLEAR</button>
+      </div>
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn" onclick="exportPNG()">EXPORT</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="pixelCanvas" width="480" height="480"></canvas>
+    <canvas id="gridCanvas"  width="480" height="480"></canvas>
+    <canvas id="refCanvas"   width="480" height="480"></canvas>
+    <canvas id="hoverCanvas" width="480" height="480"></canvas>
+  </div>
+
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  POS: <span id="statPos">—</span>
+  COLOR: <span id="statColor">WHITE</span>
+  REF: <span id="statRef">NONE</span>
+  ZOOM: <span id="statZoom">100%</span>
+  MODE: <span id="statMode">REF MOVE</span>
+</div>
+
+<script>
+const COLS = 40, ROWS = 40, PS = 12;
+
+const pixelCtx = document.getElementById('pixelCanvas').getContext('2d');
+const gridCtx  = document.getElementById('gridCanvas').getContext('2d');
+const refCtx   = document.getElementById('refCanvas').getContext('2d');
+const hoverCtx = document.getElementById('hoverCanvas').getContext('2d');
+const wrap     = document.getElementById('canvasWrap');
+
+// ── State ─────────────────────────────────────────────────────────────
+let pixels = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+let currentColor = '#ffffff';
+let currentColorName = 'WHITE';
+let showGrid = true;
+
+// Reference image
+let refImage = null;
+let ref = { x: 0, y: 0, scale: 1 };   // transform for drawing
+let refLocked = false;                  // false=UNLOCK (move ref) | true=LOCK (draw pixels)
+
+// Mouse draw state
+let isDrawing = false;
+let lastCell  = null;
+
+// Mouse pan state (unlock mode)
+let isPanning    = false;
+let panStart     = { x: 0, y: 0 };
+let panRefStart  = { x: 0, y: 0 };
+
+// Touch state
+let lastTouchDist = null;
+let lastTouchMid  = null;
+
+// ── Init ──────────────────────────────────────────────────────────────
+function initCanvas() {
+  pixelCtx.fillStyle = '#ffffff';
+  pixelCtx.fillRect(0, 0, 480, 480);
+  drawGrid();
+  updateCursor();
+}
+
+function drawGrid() {
+  gridCtx.clearRect(0, 0, 480, 480);
+  if (!showGrid) return;
+  gridCtx.strokeStyle = '#333333';
+  gridCtx.lineWidth = 0.5;
+  for (let x = 0; x <= COLS; x++) {
+    gridCtx.beginPath(); gridCtx.moveTo(x*PS, 0); gridCtx.lineTo(x*PS, ROWS*PS); gridCtx.stroke();
+  }
+  for (let y = 0; y <= ROWS; y++) {
+    gridCtx.beginPath(); gridCtx.moveTo(0, y*PS); gridCtx.lineTo(COLS*PS, y*PS); gridCtx.stroke();
+  }
+}
+
+function redrawPixels() {
+  pixelCtx.fillStyle = '#ffffff';
+  pixelCtx.fillRect(0, 0, 480, 480);
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (pixels[r][c]) { pixelCtx.fillStyle = pixels[r][c]; pixelCtx.fillRect(c*PS, r*PS, PS, PS); }
+}
+
+function updateCursor() {
+  wrap.style.cursor = refLocked ? 'crosshair' : (refImage ? 'grab' : 'default');
+}
+
+// ── Color ─────────────────────────────────────────────────────────────
+function selectColor(btn) {
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentColor = btn.dataset.color;
+  currentColorName = btn.dataset.name;
+  document.getElementById('statColor').textContent = currentColorName;
+}
+
+// ── Ref image ─────────────────────────────────────────────────────────
+function loadRef(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('refName').textContent = file.name;
+  document.getElementById('statRef').textContent = file.name.toUpperCase().slice(0, 14);
+  const img = new Image();
+  img.onload = () => {
+    refImage = img;
+    // Fit image into canvas on first load
+    const s = Math.min(480 / img.naturalWidth, 480 / img.naturalHeight);
+    ref = { x: 0, y: 0, scale: s };
+    renderRef();
+    document.getElementById('refCanvas').style.display = 'block';
+    updateCursor();
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+function renderRef() {
+  if (!refImage) return;
+  refCtx.clearRect(0, 0, 480, 480);
+  refCtx.drawImage(
+    refImage,
+    ref.x, ref.y,
+    refImage.naturalWidth  * ref.scale,
+    refImage.naturalHeight * ref.scale
+  );
+  document.getElementById('statZoom').textContent = Math.round(ref.scale * 100) + '%';
+}
+
+function setOpacity(val) {
+  document.getElementById('opacityVal').textContent = val + '%';
+  document.getElementById('refCanvas').style.opacity = val / 100;
+}
+
+function setLock(lock) {
+  refLocked = lock;
+  document.getElementById('btnLock').classList.toggle('active-btn', lock);
+  document.getElementById('btnUnlock').classList.toggle('active-btn', !lock);
+  document.getElementById('statMode').textContent = lock ? 'DRAW' : 'REF MOVE';
+  updateCursor();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function getCell(clientX, clientY) {
+  const rect = wrap.getBoundingClientRect();
+  const col = Math.floor((clientX - rect.left)  / PS);
+  const row = Math.floor((clientY - rect.top) / PS);
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return null;
+  return { col, row };
+}
+
+function getPos(clientX, clientY) {
+  const rect = wrap.getBoundingClientRect();
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function paintCell(col, row) {
+  pixels[row][col] = currentColor;
+  pixelCtx.fillStyle = currentColor;
+  pixelCtx.fillRect(col * PS, row * PS, PS, PS);
+}
+
+function drawHover(col, row) {
+  hoverCtx.clearRect(0, 0, 480, 480);
+  hoverCtx.strokeStyle = '#e8ff00';
+  hoverCtx.lineWidth = 1.5;
+  hoverCtx.strokeRect(col * PS + 0.5, row * PS + 0.5, PS - 1, PS - 1);
+}
+
+function applyZoom(pivotX, pivotY, factor) {
+  const newScale = Math.min(Math.max(ref.scale * factor, 0.03), 30);
+  const ratio = newScale / ref.scale;
+  ref.x = pivotX - ratio * (pivotX - ref.x);
+  ref.y = pivotY - ratio * (pivotY - ref.y);
+  ref.scale = newScale;
+  renderRef();
+}
+
+// ── Mouse events ──────────────────────────────────────────────────────
+wrap.addEventListener('mousedown', e => {
+  e.preventDefault();
+  if (refLocked) {
+    const cell = getCell(e.clientX, e.clientY);
+    if (!cell) return;
+    isDrawing = true;
+    paintCell(cell.col, cell.row);
+    lastCell = cell;
+  } else {
+    if (!refImage) return;
+    isPanning = true;
+    panStart   = getPos(e.clientX, e.clientY);
+    panRefStart = { x: ref.x, y: ref.y };
+    wrap.style.cursor = 'grabbing';
+  }
+});
+
+wrap.addEventListener('mousemove', e => {
+  if (refLocked) {
+    const cell = getCell(e.clientX, e.clientY);
+    if (!cell) { hoverCtx.clearRect(0,0,480,480); return; }
+    drawHover(cell.col, cell.row);
+    document.getElementById('statPos').textContent = `${cell.col},${cell.row}`;
+    if (isDrawing && (cell.col !== lastCell?.col || cell.row !== lastCell?.row)) {
+      paintCell(cell.col, cell.row);
+      lastCell = cell;
+    }
+  } else {
+    hoverCtx.clearRect(0, 0, 480, 480);
+    if (isPanning && refImage) {
+      const pos = getPos(e.clientX, e.clientY);
+      ref.x = panRefStart.x + (pos.x - panStart.x);
+      ref.y = panRefStart.y + (pos.y - panStart.y);
+      renderRef();
+    }
+  }
+});
+
+wrap.addEventListener('mouseup', () => {
+  isDrawing = false; lastCell = null;
+  isPanning = false;
+  updateCursor();
+});
+
+wrap.addEventListener('mouseleave', () => {
+  isDrawing = false; isPanning = false;
+  hoverCtx.clearRect(0, 0, 480, 480);
+  updateCursor();
+});
+
+// ── Wheel zoom (unlock mode) ───────────────────────────────────────────
+wrap.addEventListener('wheel', e => {
+  if (refLocked || !refImage) return;
+  e.preventDefault();
+  const pos   = getPos(e.clientX, e.clientY);
+  const factor = e.deltaY < 0 ? 1.12 : (1 / 1.12);
+  applyZoom(pos.x, pos.y, factor);
+}, { passive: false });
+
+// ── Touch events ──────────────────────────────────────────────────────
+wrap.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (refLocked) {
+    if (e.touches.length === 1) {
+      const t = e.touches[0];
+      const cell = getCell(t.clientX, t.clientY);
+      if (!cell) return;
+      isDrawing = true;
+      paintCell(cell.col, cell.row);
+      lastCell = cell;
+    }
+  } else {
+    if (!refImage) return;
+    if (e.touches.length === 1) {
+      isPanning  = true;
+      lastTouchDist = null;
+      panStart    = getPos(e.touches[0].clientX, e.touches[0].clientY);
+      panRefStart = { x: ref.x, y: ref.y };
+    } else if (e.touches.length === 2) {
+      isPanning = false;
+      const t0 = e.touches[0], t1 = e.touches[1];
+      lastTouchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      lastTouchMid  = getPos((t0.clientX + t1.clientX) / 2, (t0.clientY + t1.clientY) / 2);
+    }
+  }
+}, { passive: false });
+
+wrap.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (refLocked) {
+    if (!isDrawing || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const cell = getCell(t.clientX, t.clientY);
+    if (cell && (cell.col !== lastCell?.col || cell.row !== lastCell?.row)) {
+      paintCell(cell.col, cell.row);
+      lastCell = cell;
+    }
+  } else {
+    if (!refImage) return;
+    if (e.touches.length === 1 && isPanning) {
+      const pos = getPos(e.touches[0].clientX, e.touches[0].clientY);
+      ref.x = panRefStart.x + (pos.x - panStart.x);
+      ref.y = panRefStart.y + (pos.y - panStart.y);
+      renderRef();
+    } else if (e.touches.length === 2) {
+      const t0 = e.touches[0], t1 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      const mid  = getPos((t0.clientX + t1.clientX) / 2, (t0.clientY + t1.clientY) / 2);
+      if (lastTouchDist !== null) {
+        const factor = dist / lastTouchDist;
+        // Pan with midpoint movement simultaneously
+        ref.x += mid.x - lastTouchMid.x;
+        ref.y += mid.y - lastTouchMid.y;
+        applyZoom(mid.x, mid.y, factor);
+      }
+      lastTouchDist = dist;
+      lastTouchMid  = mid;
+    }
+  }
+}, { passive: false });
+
+wrap.addEventListener('touchend', e => {
+  if (e.touches.length === 0) {
+    isDrawing = false; lastCell = null;
+    isPanning = false; lastTouchDist = null;
+  } else if (e.touches.length === 1 && !refLocked && refImage) {
+    // 2→1 finger: resume pan
+    lastTouchDist = null;
+    isPanning   = true;
+    panStart    = getPos(e.touches[0].clientX, e.touches[0].clientY);
+    panRefStart = { x: ref.x, y: ref.y };
+  }
+}, { passive: false });
+
+// ── Misc ──────────────────────────────────────────────────────────────
+function toggleGrid() {
+  showGrid = !showGrid;
+  document.getElementById('btnGrid').classList.toggle('active-btn', showGrid);
+  drawGrid();
+}
+
+function clearCanvas() {
+  if (!confirm('Canvas leeren?')) return;
+  pixels = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+  redrawPixels();
+}
+
+function exportPNG() {
+  const link = document.createElement('a');
+  link.download = 'pixel-art-40x40.png';
+  link.href = document.getElementById('pixelCanvas').toDataURL('image/png');
+  link.click();
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  const map = { '1': 0, '2': 1, '3': 2, '4': 3 };
+  if (map[e.key] !== undefined) document.querySelectorAll('.color-btn')[map[e.key]].click();
+  if (e.key === 'g' || e.key === 'G') toggleGrid();
+  if (e.key === 'l' || e.key === 'L') setLock(!refLocked);
+  if (e.key === 'r' || e.key === 'R') { ref = {x:0,y:0,scale:1}; renderRef(); } // reset ref transform
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────
+initCanvas();
+</script>
+</body>
+</html>
